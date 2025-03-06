@@ -1,10 +1,16 @@
 <?php
+
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
+
 //연도를 완전한 네 자리 숫자로 표현함.	1999나 2003
 $year = date('Y');
 //월을 숫자로 표현함.	1부터 12
-$month = date('n');
+$month = date('m');
+// echo $month;
 //날짜를 숫자로 표현함.	1부터 31
 $day = date('j');
+$day2 = date('d');
 //파라미터값이 있으면 year, month, date 값 수정정
 if(isset($_GET['year'])) {
     $year = $_GET['year'];
@@ -15,15 +21,21 @@ if(isset($_GET['month'])) {
 if(isset($_GET['date'])) {
     $date = $_GET['date'];
 }
-$time_now = date("Ynj");
+$time_now = date("Ymj");
+
 
 //다음 년도,월 1더하기 
 //전 년도,월 1 빼기
 $next_year = $year + 1;
 $prev_year = $year - 1;
-$next_month = $month + 1;
-$prev_month = $month - 1;
+// $next_month = $month + 1;
+// $prev_month = $month - 1;
 
+
+$next_month = sprintf('%02d', intval($month) + 1);
+$prev_month = sprintf('%02d', intval($month) - 1);
+
+// echo $next_month;
 //만약에 12월이면 다음 월은 1월로 바뀜 
 // 1월이면 전 월은 12월로 바뀜
 if($month == 12) {
@@ -44,6 +56,74 @@ $total_week = ceil(($monthnum + $start_day) / 7);
 //마지막 요일 0(일요일)부터 6(토요일)
 $end_day = date('w', mktime(0, 0, 0, $month, $monthnum, $year));
 
+
+$service_key = "z77ZBdChsMxxR8HY78hs5hmHVwO0wZwa7S2NGyV4EfrS2vRy%2BIvbtySGeg%2BpNzXQjz6eGlqNYOXRZj%2F6HrlMkw%3D%3D";
+
+// cURL 세션 초기화
+$ch = curl_init();
+// 요청할 URL 설정 
+$url = "http://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo?solYear=".$year."&solMonth=".$month."&_type=json&ServiceKey=".$service_key;
+// URL 설정
+// echo $url;
+curl_setopt($ch, CURLOPT_URL, $url);
+// 반환값을 문자열로 설정
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+// cURL 실행 및 결과 저장
+$response = curl_exec($ch);
+// HTTP 응답 코드 확인
+$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+// cURL 세션 닫기
+curl_close($ch);
+// HTTP 응답 코드가 200일 경우 JSON 데이터 출력
+if ($http_code == 200) {
+    // JSON 문자열을 PHP 배열로 변환
+    $data = json_decode($response, true);
+    // print_r($data['response']);
+    // $data['response'];
+
+    // 데이터 출력 (여기서는 예시로 첫 번째 열차 정보를 출력)
+} else {
+    echo "HTTP 요청 실패, 응답 코드: $http_code\n";
+    exit;
+}
+
+// $list =  $data['response']['body']['items']['item'];
+// $list = array(
+//             array(
+//                 'dateName' => "삼일절",
+//                 'locdate' => "20250301"
+//             ),    
+//             array(
+//                 'dateName' => "삼이절",
+//                 'locdate' => "20250301"
+//             ),    
+//             array(
+//                 'dateName' => "삼삼절",
+//                 'locdate' => "20250303"
+//             )
+// );
+// print_r($list);
+// echo $data['response']['body']['items']['item'];
+// print_r($data);
+$holy = array();
+if(isset($data['response']['body']['items']['item'])) {
+    //$response 변수 생성
+    $response = $data['response']['body']['items']['item'];
+    //$response가 단일 배열일 때 오류가 발생하므로 배열로 변환
+    if (!isset($data['response']['body']['items']['item'][0])) {
+        $response = array($response);
+    }
+
+    foreach ( $response as $key => $value ){
+        if( isset($holy[$value['locdate']]) ) {
+            $holy[$value['locdate']] = $holy[$value['locdate']].",".$value['dateName'];
+        }
+        else {
+            $holy[$value['locdate']] = $value['dateName'];
+        }
+    }
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -57,7 +137,7 @@ $end_day = date('w', mktime(0, 0, 0, $month, $monthnum, $year));
                 color:blue;
             }
             table{
-                border:1px solid black;
+                border:1px solid blac;k;
                 text-align: center;
             }
             tr{
@@ -108,7 +188,7 @@ $end_day = date('w', mktime(0, 0, 0, $month, $monthnum, $year));
                             //class 배열을 생성해놓고 0일 때 red 적용, 6일 때 blue 적용, 오늘 날짜랑 같을 때 today 적용
                             for($j = 0; $j < 7; $j++) {
                                 $class = array();
-                                if($j == 0) {
+                                if($j == 0 || array_key_exists(sprintf("%s%s%02d",$year,$month,$day), $holy)) {
                                     $class[] = "red";
                                 }
                                 if($j == 6) {
@@ -117,6 +197,9 @@ $end_day = date('w', mktime(0, 0, 0, $month, $monthnum, $year));
                                 if($time_now == $year.$month.$day) {
                                     $class[] = "today";
                                 }
+                                // if(isset($holy)) {
+                                //     $class[] = "red";
+                                // }
 
                                 echo "<td class='" . implode(" ", $class) . "'>";
 
@@ -132,9 +215,6 @@ $end_day = date('w', mktime(0, 0, 0, $month, $monthnum, $year));
 
                             echo "</tr>";
                         }?>
-                        
-                        
-                    
             </table>
         </div>
     </body>
