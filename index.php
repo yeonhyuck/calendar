@@ -57,7 +57,7 @@ $total_week = ceil(($monthnum + $start_day) / 7);
 $end_day = date('w', mktime(0, 0, 0, $month, $monthnum, $year));
 
 
-$service_key = "z77ZBdChsMxxR8HY78hs5hmHVwO0wZwa7S2NGyV4EfrS2vRy%2BIvbtySGeg%2BpNzXQjz6eGlqNYOXRZj%2F6HrlMkw%3D%3D";
+$service_key = "";
 
 // cURL 세션 초기화
 $ch = curl_init();
